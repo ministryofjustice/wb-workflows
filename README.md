@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read # to title the release after the merged PR
 
 jobs:
   release:
@@ -36,8 +37,11 @@ jobs:
       package-name: my-theme    # folder name WordPress installs it as
 ```
 
-**`.github/workflows/preview.yml`**: the same, with `on: workflow_dispatch:`
-and `mode: preview`.
+Releases are titled after the merged PR, e.g. `2.3.3 - Fix nav keyboard focus`.
+Direct pushes, or callers without `pull-requests: read`, get just the version.
+
+**`.github/workflows/preview.yml`**: the same, with `on: workflow_dispatch:`,
+`mode: preview`, and only `contents: write`.
 
 **`.release-filter`**: an [rsync filter](https://download.samba.org/pub/rsync/rsync.1#FILTER_RULES)
 listing what goes in the zip. Rules are checked top to bottom and the first

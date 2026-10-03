@@ -234,11 +234,41 @@ jobs:
           \`gh release delete ${TAG} --cleanup-tag --yes -R ${GITHUB_REPOSITORY}\`
           EOF
 
+      # Title the release after the PR that was merged, e.g. "2.3.3 - Fix nav keyboard focus".
+      # Falls back to just the version for direct pushes, or if the lookup fails.
+      - name: Name release after merged PR
+        id: pr
+        if: steps.plan.outputs.publish == 'true' && inputs.mode == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          # On API errors gh prints the error body to stdout, so only trust it on success.
+          if ! TITLE=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq "map(select(.merged_at != null)) | (map(select(.merge_commit_sha == \"${GITHUB_SHA}\")) + .) | .[0].title // empty" \
+            2>/dev/null); then
+            TITLE=""
+          fi
+          if [ -n "$TITLE" ]; then
+            NAME="${TAG} - ${TITLE}"
+          else
+            echo "::notice::No merged PR found for ${GITHUB_SHA}; titling the release '${TAG}'."
+            NAME="$TAG"
+          fi
+          # Delimiter syntax so a title can't break the output file.
+          {
+            echo "name<<WB_RELEASE_NAME_EOF"
+            echo "$NAME"
+            echo "WB_RELEASE_NAME_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release title: $NAME"
+
       - name: Publish release
         if: steps.plan.outputs.publish == 'true' && inputs.mode == 'release'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.plan.outputs.tag }}
+          name: ${{ steps.pr.outputs.name || steps.plan.outputs.tag }}
           target_commitish: ${{ github.sha }}
           files: ${{ inputs.package-name }}-${{ steps.plan.outputs.tag }}.zip
           fail_on_unmatched_files: true
