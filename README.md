@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   release:
-    uses: RobLoweMOJ/wp-release-workflows/.github/workflows/wordpress-package.yml@main
+    uses: ministryofjustice/wb-workflows/.github/workflows/wb-package.yml@main
     with:
       mode: release
       version-file: style.css   # or the plugin's main PHP file
